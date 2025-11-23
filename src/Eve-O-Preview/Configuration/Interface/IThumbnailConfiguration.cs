@@ -71,11 +71,10 @@ namespace EveOPreview.Configuration
 		Color OverlayLabelColor { get; set; }
 		int OverlayLabelSize { get; set; }
 
+		bool EnableSystemNameDisplay { get; set; }
+		Color SystemNameColor { get; set; }
 		string IconName { get; set; }
-
-		Point LoginThumbnailLocation { get; set; }
-
-		Point GetThumbnailLocation(string currentClient, string activeClient, Point defaultLocation);
+		string ChatlogPath { get; set; }	Point LoginThumbnailLocation { get; set; }		Point GetThumbnailLocation(string currentClient, string activeClient, Point defaultLocation);
 		Size GetThumbnailSize(string currentClient, string activeClient, Size defaultSize);
 		ZoomAnchor GetZoomAnchor(string currentClient, ZoomAnchor defaultZoomAnchor);
 		void SetThumbnailLocation(string currentClient, string activeClient, Point location);

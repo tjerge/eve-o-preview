@@ -77,13 +77,12 @@ namespace EveOPreview
 		{
 			IIocContainer container = new LightInjectContainer();
 
-		// Singleton registration is used for services
-		// Low-level services
-		container.Register<IWindowManager>();
-		container.Register<IProcessMonitor>();
-		container.Register<IWindowFocusEventService>();
-
-		// MediatR
+	// Singleton registration is used for services
+	// Low-level services
+	container.Register<IWindowManager>();
+	container.Register<IProcessMonitor>();
+	container.Register<IWindowFocusEventService>();
+	container.Register<IChatlogMonitor>();		// MediatR
 			container.Register<IMediator, MediatR.Mediator>();
 			container.RegisterInstance<ServiceFactory>(t => container.Resolve(t));
 			container.Register(typeof(INotificationHandler<>), typeof(Program).Assembly);

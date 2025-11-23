@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -28,15 +28,16 @@ namespace EveOPreview.Services
 		#endregion
 
 	#region Private fields
-	private readonly IMediator _mediator;
-	private readonly IProcessMonitor _processMonitor;
-	private readonly IWindowManager _windowManager;
-	private readonly IThumbnailConfiguration _configuration;
-	private readonly DispatcherTimer _thumbnailUpdateTimer;
-	private readonly IThumbnailViewFactory _thumbnailViewFactory;
-	private readonly IWindowFocusEventService _windowFocusEventService;
-	private readonly Dictionary<IntPtr, IThumbnailView> _thumbnailViews;
-
+private readonly IMediator _mediator;
+private readonly IProcessMonitor _processMonitor;
+private readonly IWindowManager _windowManager;
+private readonly IThumbnailConfiguration _configuration;
+private readonly DispatcherTimer _thumbnailUpdateTimer;
+private readonly IThumbnailViewFactory _thumbnailViewFactory;
+private readonly IWindowFocusEventService _windowFocusEventService;
+private readonly IChatlogMonitor _chatlogMonitor;
+private readonly Dictionary<IntPtr, IThumbnailView> _thumbnailViews;
+private readonly Dictionary<string, string> _characterSystemCache; // Cache system names before thumbnails exist
 	private (IntPtr Handle, string Title) _activeClient;
 	private IntPtr _externalApplication;
 
@@ -52,18 +53,17 @@ namespace EveOPreview.Services
 	private List<HotkeyHandler> _cycleClientHotkeyHandlers = new List<HotkeyHandler>();
 	#endregion
 
-	public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuration, IProcessMonitor processMonitor, IWindowManager windowManager, IThumbnailViewFactory factory, IWindowFocusEventService windowFocusEventService)
-	{
-		this._mediator = mediator;
-		this._processMonitor = processMonitor;
-		this._windowManager = windowManager;
-		this._configuration = configuration;
-		this._thumbnailViewFactory = factory;
-		this._windowFocusEventService = windowFocusEventService;
+public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuration, IProcessMonitor processMonitor, IWindowManager windowManager, IThumbnailViewFactory factory, IWindowFocusEventService windowFocusEventService, IChatlogMonitor chatlogMonitor)
+{
+	this._mediator = mediator;
+	this._processMonitor = processMonitor;
+	this._windowManager = windowManager;
+	this._configuration = configuration;
+	this._thumbnailViewFactory = factory;
+	this._windowFocusEventService = windowFocusEventService;
+	this._chatlogMonitor = chatlogMonitor;
 
-		this._activeClient = (IntPtr.Zero, ThumbnailManager.DEFAULT_CLIENT_TITLE);
-
-		this.EnableViewEvents();
+	this._activeClient = (IntPtr.Zero, ThumbnailManager.DEFAULT_CLIENT_TITLE);		this.EnableViewEvents();
 			this._isHoverEffectActive = false;
 
 			this._refreshCycleCount = 0;
@@ -71,6 +71,7 @@ namespace EveOPreview.Services
 			this._enqueuedLocationChangeNotification = (IntPtr.Zero, null, null, Point.Empty, -1);
 
 			this._thumbnailViews = new Dictionary<IntPtr, IThumbnailView>();
+			this._characterSystemCache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
 			//  DispatcherTimer setup
 			this._thumbnailUpdateTimer = new DispatcherTimer();
@@ -250,6 +251,13 @@ namespace EveOPreview.Services
 	{
 		this._thumbnailUpdateTimer.Start();
 		this._windowFocusEventService.Start();
+		
+		// Set up chatlog monitoring if enabled
+		if (this._configuration.EnableSystemNameDisplay)
+		{
+			this._chatlogMonitor.SystemChanged += OnCharacterSystemChanged;
+			this._chatlogMonitor.Start();
+		}
 
 		this.RefreshThumbnails();
 	}
@@ -258,6 +266,13 @@ namespace EveOPreview.Services
 	{
 		this._thumbnailUpdateTimer.Stop();
 		this._windowFocusEventService.Stop();
+		
+		// Stop chatlog monitoring if it was started
+		if (this._configuration.EnableSystemNameDisplay)
+		{
+			this._chatlogMonitor.SystemChanged -= OnCharacterSystemChanged;
+			this._chatlogMonitor.Stop();
+		}
 	}		private void ThumbnailUpdateTimerTick(object sender, EventArgs e)
 		{
 			this.UpdateThumbnailsList();
@@ -292,6 +307,12 @@ namespace EveOPreview.Services
 											: this._configuration.LoginThumbnailLocation;
 
 				this._thumbnailViews.Add(view.Id, view);
+
+				// Apply cached system name if available
+				string characterName = view.Title.Replace("EVE - ", "").Replace("EVE Frontier - ", "").Trim();
+				if (_characterSystemCache.TryGetValue(characterName, out string cachedSystem))
+				{					view.SystemName = cachedSystem;
+				}
 
 				view.ThumbnailResized = this.ThumbnailViewResized;
 				view.ThumbnailMoved = this.ThumbnailViewMoved;
@@ -589,9 +610,7 @@ namespace EveOPreview.Services
 
 		// Update active client and refresh borders instantly if switching between EVE clients
 		if (!string.IsNullOrEmpty(foregroundWindowTitle))
-		{
-			System.Diagnostics.Debug.WriteLine($"[WindowFocusEvent] Switching to client: {foregroundWindowTitle}");
-			
+		{			
 			this.SwitchActiveClient(foregroundWindowHandle, foregroundWindowTitle);
 			
 			// Instantly update the highlight borders for all thumbnails
@@ -1032,5 +1051,41 @@ namespace EveOPreview.Services
 					&& (top > ThumbnailManager.WINDOW_POSITION_THRESHOLD_LOW) && (top < ThumbnailManager.WINDOW_POSITION_THRESHOLD_HIGH)
 					&& (width > ThumbnailManager.WINDOW_SIZE_THRESHOLD) && (height > ThumbnailManager.WINDOW_SIZE_THRESHOLD);
 		}
+
+		private void OnCharacterSystemChanged(string characterName, string systemName)
+		{		
+		// Cache the system name for this character
+		_characterSystemCache[characterName] = systemName;			// Find the thumbnail view for this character
+			foreach (var entry in this._thumbnailViews)
+			{
+				IThumbnailView view = entry.Value;
+				
+				// Extract character name from title (remove "EVE - " or "EVE Frontier - " prefix)
+				string viewCharacterName = view.Title.Replace("EVE - ", "").Replace("EVE Frontier - ", "").Trim();				
+				if (string.Equals(viewCharacterName, characterName, StringComparison.OrdinalIgnoreCase))
+				{					
+					// Update the system name on the UI thread
+					if (view is System.Windows.Forms.Control control)
+					{
+						if (control.InvokeRequired)
+						{
+							control.BeginInvoke(new Action(() => 
+							{
+								view.SystemName = systemName;
+								view.Refresh(false);							}));
+						}
+						else
+						{
+							view.SystemName = systemName;
+							view.Refresh(false);						}
+					}
+					else
+					{
+						view.SystemName = systemName;
+						view.Refresh(false);					}
+					
+					return;
+				}
+			}		}
 	}
 }

@@ -24,18 +24,58 @@ namespace EveOPreview.View
 			this._areaClickAction(this, e);
 		}
 
-		public void SetOverlayLabel(string label)
+	public void SetOverlayLabel(string characterName, string systemName, bool showSystemName, System.Drawing.Color characterColor, System.Drawing.Color systemColor, ZoomAnchor anchor)
+	{
+		this.OverlayLabel.Clear();
+		
+		// Set alignment for the entire control
+		System.Windows.Forms.HorizontalAlignment alignment = GetAlignmentFromAnchor(anchor);
+		
+		// Add character name
+		this.OverlayLabel.SelectionStart = 0;
+		this.OverlayLabel.SelectionAlignment = alignment;
+		this.OverlayLabel.SelectionColor = characterColor;
+		this.OverlayLabel.AppendText(characterName);
+		
+		// Add system name if enabled
+		if (showSystemName && !string.IsNullOrEmpty(systemName))
 		{
-			this.OverlayLabel.Text = label;
+			this.OverlayLabel.AppendText("\n");
+			this.OverlayLabel.SelectionAlignment = alignment;
+			this.OverlayLabel.SelectionColor = systemColor;
+			this.OverlayLabel.AppendText(systemName);
 		}
-
-		public void SetPropertiesOverlayLabel(int size, System.Drawing.Color c, ZoomAnchor anchor)
+		
+		// Reset selection
+		this.OverlayLabel.SelectionStart = 0;
+		this.OverlayLabel.SelectionLength = 0;
+	}
+	
+	private System.Windows.Forms.HorizontalAlignment GetAlignmentFromAnchor(ZoomAnchor anchor)
+	{
+		switch (anchor)
+		{
+			case ZoomAnchor.NW:
+			case ZoomAnchor.W:
+			case ZoomAnchor.SW:
+				return System.Windows.Forms.HorizontalAlignment.Left;
+			case ZoomAnchor.N:
+			case ZoomAnchor.C:
+			case ZoomAnchor.S:
+				return System.Windows.Forms.HorizontalAlignment.Center;
+			case ZoomAnchor.NE:
+			case ZoomAnchor.E:
+			case ZoomAnchor.SE:
+				return System.Windows.Forms.HorizontalAlignment.Right;
+			default:
+				return System.Windows.Forms.HorizontalAlignment.Left;
+		}
+	}		public void SetPropertiesOverlayLabel(int size, System.Drawing.Color c, ZoomAnchor anchor)
 		{
 			if (this.OverlayLabel.Font.Size != size)
 			{
 				this.OverlayLabel.Font = new System.Drawing.Font(this.OverlayLabel.Font.FontFamily, size);
 			}
-			this.OverlayLabel.ForeColor = c;
 
 			int margin = 5;
 
@@ -44,47 +84,38 @@ namespace EveOPreview.View
 				case ZoomAnchor.NW:
 					this.OverlayLabel.Left = margin;
 					this.OverlayLabel.Top = margin;
-					this.OverlayLabel.TextAlign = System.Drawing.ContentAlignment.TopLeft;
 					break;
                 case ZoomAnchor.N:
                     this.OverlayLabel.Left = (this.Width / 2) - (this.OverlayLabel.Width / 2);
                     this.OverlayLabel.Top = margin;
-                    this.OverlayLabel.TextAlign = System.Drawing.ContentAlignment.TopCenter;
                     break;
                 case ZoomAnchor.NE:
                     this.OverlayLabel.Left = this.Width - this.OverlayLabel.Width - margin;
                     this.OverlayLabel.Top = margin;
-                    this.OverlayLabel.TextAlign = System.Drawing.ContentAlignment.TopRight;
                     break;
                 case ZoomAnchor.W:
                     this.OverlayLabel.Left = margin;
                     this.OverlayLabel.Top = (this.Height / 2) - (this.OverlayLabel.Height / 2);
-                    this.OverlayLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
                     break;
                 case ZoomAnchor.C:
                     this.OverlayLabel.Left = (this.Width / 2) - (this.OverlayLabel.Width / 2);
                     this.OverlayLabel.Top = (this.Height / 2) - (this.OverlayLabel.Height / 2);
-                    this.OverlayLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
                     break;
                 case ZoomAnchor.E:
                     this.OverlayLabel.Left = this.Width - this.OverlayLabel.Width - margin;
                     this.OverlayLabel.Top = (this.Height / 2) - (this.OverlayLabel.Height / 2);
-                    this.OverlayLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
                     break;
                 case ZoomAnchor.SW:
                     this.OverlayLabel.Left = margin;
                     this.OverlayLabel.Top = this.Height - this.OverlayLabel.Height - margin;
-                    this.OverlayLabel.TextAlign = System.Drawing.ContentAlignment.BottomLeft;
                     break;
                 case ZoomAnchor.S:
                     this.OverlayLabel.Left = (this.Width / 2) - (this.OverlayLabel.Width / 2);
                     this.OverlayLabel.Top = this.Height - this.OverlayLabel.Height - margin;
-                    this.OverlayLabel.TextAlign = System.Drawing.ContentAlignment.BottomCenter;
                     break;
                 case ZoomAnchor.SE:
                     this.OverlayLabel.Left = this.Width - this.OverlayLabel.Width - margin;
                     this.OverlayLabel.Top = this.Height - this.OverlayLabel.Height - margin;
-                    this.OverlayLabel.TextAlign = System.Drawing.ContentAlignment.BottomRight;
                     break;
             }
 		}

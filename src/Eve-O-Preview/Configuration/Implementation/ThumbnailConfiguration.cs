@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using Newtonsoft.Json;
@@ -129,11 +130,14 @@ namespace EveOPreview.Configuration.Implementation
 			this.ActiveClientHighlightThickness = 3;
 
 			this.OverlayLabelColor = Color.Orange;
-			this.OverlayLabelSize = 10;
+		this.OverlayLabelSize = 10;
 
-			this.IconName = "";
+		this.EnableSystemNameDisplay = true;
+		this.SystemNameColor = Color.LightBlue;
+		this.IconName = "";
+		this.ChatlogPath = ""; // Empty = auto-detect
 
-			this.LoginThumbnailLocation = new Point(5, 5);
+		this.LoginThumbnailLocation = new Point(5, 5);
 		}
 
 
@@ -261,14 +265,15 @@ namespace EveOPreview.Configuration.Implementation
 
 		public bool EnableActiveClientHighlight { get; set; }
 
-		public Color ActiveClientHighlightColor { get; set; }
-		public Color OverlayLabelColor { get; set; }
-		public int OverlayLabelSize {  get; set; }
-		public string IconName { get; set; }
+	public Color ActiveClientHighlightColor { get; set; }
+	public Color OverlayLabelColor { get; set; }
+	public int OverlayLabelSize {  get; set; }
+	public bool EnableSystemNameDisplay { get; set; }
+	public Color SystemNameColor { get; set; }
+	public string IconName { get; set; }
+	public string ChatlogPath { get; set; }
 
-		public int ActiveClientHighlightThickness { get; set; }
-
-		[JsonProperty("LoginThumbnailLocation")]
+	public int ActiveClientHighlightThickness { get; set; }		[JsonProperty("LoginThumbnailLocation")]
 		public Point LoginThumbnailLocation { get; set; }
 
 		[JsonProperty]

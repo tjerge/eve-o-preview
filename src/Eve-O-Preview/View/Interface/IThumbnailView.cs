@@ -8,10 +8,11 @@ namespace EveOPreview.View
 {
 	public interface IThumbnailView : IView
 	{
-		IntPtr Id { get; set; }
-		string Title { get; set; }
+	IntPtr Id { get; set; }
+	string Title { get; set; }
+	string SystemName { get; set; }
 
-		bool IsActive { get; set; }
+	bool IsActive { get; set; }
 		Point ThumbnailLocation { get; set; }
 		Size ThumbnailSize { get; set; }
 		bool IsOverlayEnabled { get; set; }

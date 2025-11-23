@@ -81,21 +81,39 @@ namespace EveOPreview.View
 
 		public IntPtr Id { get; set; }
 
-		public string Title
+	public string Title
+	{
+		get => this.Text;
+		set
 		{
-			get => this.Text;
-			set
+			this.Text = value;
+			UpdateOverlayLabels();
+			SetDefaultBorderColor();
+		}
+	}
+
+	private string _systemName;
+	public string SystemName
+	{
+		get => _systemName;
+		set
+		{
+			if (_systemName != value)
 			{
-				this.Text = value;
-				this._overlay.SetOverlayLabel(value.Replace("EVE - ", "").Replace("EVE Frontier - ", "*"));
-				this._overlay.SetPropertiesOverlayLabel(_config.OverlayLabelSize, _config.OverlayLabelColor, _config.OverlayLabelAnchor);
-				SetDefaultBorderColor();
+				_systemName = value;
+				UpdateOverlayLabels();
 			}
 		}
+	}
 
-		public bool IsActive { get; set; }
+	private void UpdateOverlayLabels()
+	{
+		string characterName = this.Text.Replace("EVE - ", "").Replace("EVE Frontier - ", "*");
+		this._overlay.SetOverlayLabel(characterName, _systemName, _config.EnableSystemNameDisplay, _config.OverlayLabelColor, _config.SystemNameColor, _config.OverlayLabelAnchor);
+		this._overlay.SetPropertiesOverlayLabel(_config.OverlayLabelSize, _config.OverlayLabelColor, _config.OverlayLabelAnchor);
+	}
 
-		public bool IsOverlayEnabled { get; set; }
+	public bool IsActive { get; set; }		public bool IsOverlayEnabled { get; set; }
 		public ZoomAnchor ClientZoomAnchor { get; set; }
 
 		public Point ThumbnailLocation
