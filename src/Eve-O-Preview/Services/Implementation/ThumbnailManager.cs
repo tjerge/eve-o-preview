@@ -27,41 +27,43 @@ namespace EveOPreview.Services
 		private const string DEFAULT_CLIENT_TITLE = "EVE";
 		#endregion
 
-		#region Private fields
-		private readonly IMediator _mediator;
-		private readonly IProcessMonitor _processMonitor;
-		private readonly IWindowManager _windowManager;
-		private readonly IThumbnailConfiguration _configuration;
-		private readonly DispatcherTimer _thumbnailUpdateTimer;
-		private readonly IThumbnailViewFactory _thumbnailViewFactory;
-		private readonly Dictionary<IntPtr, IThumbnailView> _thumbnailViews;
+	#region Private fields
+	private readonly IMediator _mediator;
+	private readonly IProcessMonitor _processMonitor;
+	private readonly IWindowManager _windowManager;
+	private readonly IThumbnailConfiguration _configuration;
+	private readonly DispatcherTimer _thumbnailUpdateTimer;
+	private readonly IThumbnailViewFactory _thumbnailViewFactory;
+	private readonly IWindowFocusEventService _windowFocusEventService;
+	private readonly Dictionary<IntPtr, IThumbnailView> _thumbnailViews;
 
-		private (IntPtr Handle, string Title) _activeClient;
-		private IntPtr _externalApplication;
+	private (IntPtr Handle, string Title) _activeClient;
+	private IntPtr _externalApplication;
 
-		private readonly object _locationChangeNotificationSyncRoot;
-		private (IntPtr Handle, string Title, string ActiveClient, Point Location, int Delay) _enqueuedLocationChangeNotification;
+	private readonly object _locationChangeNotificationSyncRoot;
+	private (IntPtr Handle, string Title, string ActiveClient, Point Location, int Delay) _enqueuedLocationChangeNotification;
 
-		private bool _ignoreViewEvents;
-		private bool _isHoverEffectActive;
+	private bool _ignoreViewEvents;
+	private bool _isHoverEffectActive;
 
-		private int _refreshCycleCount;
-		private int _hideThumbnailsDelay;
+	private int _refreshCycleCount;
+	private int _hideThumbnailsDelay;
 
-		private List<HotkeyHandler> _cycleClientHotkeyHandlers = new List<HotkeyHandler>();
-		#endregion
+	private List<HotkeyHandler> _cycleClientHotkeyHandlers = new List<HotkeyHandler>();
+	#endregion
 
-		public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuration, IProcessMonitor processMonitor, IWindowManager windowManager, IThumbnailViewFactory factory)
-		{
-			this._mediator = mediator;
-			this._processMonitor = processMonitor;
-			this._windowManager = windowManager;
-			this._configuration = configuration;
-			this._thumbnailViewFactory = factory;
+	public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuration, IProcessMonitor processMonitor, IWindowManager windowManager, IThumbnailViewFactory factory, IWindowFocusEventService windowFocusEventService)
+	{
+		this._mediator = mediator;
+		this._processMonitor = processMonitor;
+		this._windowManager = windowManager;
+		this._configuration = configuration;
+		this._thumbnailViewFactory = factory;
+		this._windowFocusEventService = windowFocusEventService;
 
-			this._activeClient = (IntPtr.Zero, ThumbnailManager.DEFAULT_CLIENT_TITLE);
+		this._activeClient = (IntPtr.Zero, ThumbnailManager.DEFAULT_CLIENT_TITLE);
 
-			this.EnableViewEvents();
+		this.EnableViewEvents();
 			this._isHoverEffectActive = false;
 
 			this._refreshCycleCount = 0;
@@ -75,9 +77,12 @@ namespace EveOPreview.Services
 			this._thumbnailUpdateTimer.Tick += ThumbnailUpdateTimerTick;
 			this._thumbnailUpdateTimer.Interval = new TimeSpan(0, 0, 0, 0, configuration.ThumbnailRefreshPeriod);
 
-			this._hideThumbnailsDelay = this._configuration.HideThumbnailsDelay;
+		this._hideThumbnailsDelay = this._configuration.HideThumbnailsDelay;
 
-			RegisterCycleClientHotkey(this._configuration.CycleGroup1ForwardHotkeys?.Select(x => this._configuration.StringToKey(x)), true, this._configuration.CycleGroup1ClientsOrder);
+		// Subscribe to window focus changes for instant border updates
+		this._windowFocusEventService.ForegroundWindowChanged += OnForegroundWindowChanged;
+
+		RegisterCycleClientHotkey(this._configuration.CycleGroup1ForwardHotkeys?.Select(x => this._configuration.StringToKey(x)), true, this._configuration.CycleGroup1ClientsOrder);
 			RegisterCycleClientHotkey(this._configuration.CycleGroup1BackwardHotkeys?.Select(x => this._configuration.StringToKey(x)), false, this._configuration.CycleGroup1ClientsOrder);
 
 			RegisterCycleClientHotkey(this._configuration.CycleGroup2ForwardHotkeys?.Select(x => this._configuration.StringToKey(x)), true, this._configuration.CycleGroup2ClientsOrder);
@@ -241,19 +246,19 @@ namespace EveOPreview.Services
 			}
 		}
 
-		public void Start()
-		{
-			this._thumbnailUpdateTimer.Start();
+	public void Start()
+	{
+		this._thumbnailUpdateTimer.Start();
+		this._windowFocusEventService.Start();
 
-			this.RefreshThumbnails();
-		}
+		this.RefreshThumbnails();
+	}
 
-		public void Stop()
-		{
-			this._thumbnailUpdateTimer.Stop();
-		}
-
-		private void ThumbnailUpdateTimerTick(object sender, EventArgs e)
+	public void Stop()
+	{
+		this._thumbnailUpdateTimer.Stop();
+		this._windowFocusEventService.Stop();
+	}		private void ThumbnailUpdateTimerTick(object sender, EventArgs e)
 		{
 			this.UpdateThumbnailsList();
 			this.RefreshThumbnails();
@@ -554,9 +559,87 @@ namespace EveOPreview.Services
 			this._ignoreViewEvents = true;
 		}
 
-		private void SwitchActiveClient(IntPtr foregroundClientHandle, string foregroundClientTitle)
+	private void OnForegroundWindowChanged(IntPtr foregroundWindowHandle)
+	{
+		// The foreground window can be NULL in certain circumstances, such as when a window is losing activation.
+		// It is safer to just skip this event than to do something while the system state is undefined
+		if (foregroundWindowHandle == IntPtr.Zero)
 		{
-			// Check if any actions are needed
+			return;
+		}
+
+		string foregroundWindowTitle = null;
+
+		// Check if the foreground window handle is one of the known handles for client windows or their thumbnails
+		bool isClientWindow = this.IsClientWindowActive(foregroundWindowHandle);
+
+		if (foregroundWindowHandle == this._activeClient.Handle)
+		{
+			foregroundWindowTitle = this._activeClient.Title;
+		}
+		else if (this._thumbnailViews.TryGetValue(foregroundWindowHandle, out IThumbnailView foregroundView))
+		{
+			// This code will work only on Alt+Tab switch between clients
+			foregroundWindowTitle = foregroundView.Title;
+		}
+		else if (!isClientWindow)
+		{
+			this._externalApplication = foregroundWindowHandle;
+		}
+
+		// Update active client and refresh borders instantly if switching between EVE clients
+		if (!string.IsNullOrEmpty(foregroundWindowTitle))
+		{
+			System.Diagnostics.Debug.WriteLine($"[WindowFocusEvent] Switching to client: {foregroundWindowTitle}");
+			
+			this.SwitchActiveClient(foregroundWindowHandle, foregroundWindowTitle);
+			
+			// Instantly update the highlight borders for all thumbnails
+			// This must be done on the UI thread since we're updating WinForms controls
+			this.UpdateActiveClientHighlight();
+		}
+	}
+
+	private void UpdateActiveClientHighlight()
+	{
+		// Update the highlight border for all thumbnails immediately
+		// We need to update on the UI thread for each view
+		foreach (KeyValuePair<IntPtr, IThumbnailView> entry in this._thumbnailViews)
+		{
+			IThumbnailView view = entry.Value;
+			
+			// Capture variables for the closure
+			bool shouldHighlight = this._configuration.EnableActiveClientHighlight && (view.Id == this._activeClient.Handle);
+			int thickness = this._configuration.ActiveClientHighlightThickness;
+			
+			// Invoke on the view's UI thread if needed
+			if (view is System.Windows.Forms.Control control)
+			{
+				if (control.InvokeRequired)
+				{
+					control.BeginInvoke(new Action(() => 
+					{
+						view.SetHighlight(shouldHighlight, thickness);
+						view.Refresh(false); // Trigger the actual visual update
+					}));
+				}
+				else
+				{
+					view.SetHighlight(shouldHighlight, thickness);
+					view.Refresh(false); // Trigger the actual visual update
+				}
+			}
+			else
+			{
+				view.SetHighlight(shouldHighlight, thickness);
+				view.Refresh(false); // Trigger the actual visual update
+			}
+		}
+	}
+
+	private void SwitchActiveClient(IntPtr foregroundClientHandle, string foregroundClientTitle)
+	{
+		// Check if any actions are needed
 			if (this._activeClient.Handle == foregroundClientHandle)
 			{
 				return;
