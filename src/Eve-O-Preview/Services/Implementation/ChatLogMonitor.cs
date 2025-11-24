@@ -165,26 +165,11 @@ private string _chatlogPath; // Cached chatlog directory path
 						continue;
 
 					string characterId = parts[3]; // The character ID
-					string dateStr = parts[1];     // YYYYMMDD
-					string timeStr = parts[2];     // HHMMSS
-
-					// Parse the timestamp from the filename
-					DateTime timestamp;
-					try
-					{
-						int year = int.Parse(dateStr.Substring(0, 4));
-						int month = int.Parse(dateStr.Substring(4, 2));
-						int day = int.Parse(dateStr.Substring(6, 2));
-						int hour = int.Parse(timeStr.Substring(0, 2));
-						int minute = int.Parse(timeStr.Substring(2, 2));
-						int second = int.Parse(timeStr.Substring(4, 2));
-						timestamp = new DateTime(year, month, day, hour, minute, second);
-					}
-					catch
-					{
-						// If we can't parse the timestamp, fall back to file write time
-						timestamp = File.GetLastWriteTime(logFile);
-					}
+					
+					// Use file's last write time instead of filename timestamp
+					// This ensures we get the actively-written file, even if characters
+					// logged in before the daily UTC rollover
+					DateTime timestamp = File.GetLastWriteTime(logFile);
 
 					// Keep only the most recent file for each character ID
 					if (!characterIdFiles.ContainsKey(characterId) || timestamp > characterIdFiles[characterId].Timestamp)
