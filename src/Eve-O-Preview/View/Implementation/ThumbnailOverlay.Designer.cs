@@ -29,7 +29,8 @@
 		private void InitializeComponent()
 		{
 			System.Windows.Forms.PictureBox OverlayAreaPictureBox;
-			this.OverlayLabel = new System.Windows.Forms.RichTextBox();
+			this.CharacterNameLabel = new System.Windows.Forms.Label();
+			this.SystemNameLabel = new System.Windows.Forms.Label();
 			OverlayAreaPictureBox = new System.Windows.Forms.PictureBox();
 			((System.ComponentModel.ISupportInitialize)(OverlayAreaPictureBox)).BeginInit();
 			this.SuspendLayout();
@@ -47,20 +48,29 @@
 			OverlayAreaPictureBox.TabStop = false;
 			OverlayAreaPictureBox.MouseUp += new System.Windows.Forms.MouseEventHandler(this.OverlayArea_Click);
 			// 
-			// OverlayLabel
+			// CharacterNameLabel
 			// 
-			this.OverlayLabel.BackColor = System.Drawing.Color.Black;
-			this.OverlayLabel.BorderStyle = System.Windows.Forms.BorderStyle.None;
-			this.OverlayLabel.Font = new System.Drawing.Font("Consolas", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-			this.OverlayLabel.Location = new System.Drawing.Point(8, 8);
-			this.OverlayLabel.Name = "OverlayLabel";
-			this.OverlayLabel.ReadOnly = true;
-			this.OverlayLabel.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.None;
-			this.OverlayLabel.Size = new System.Drawing.Size(150, 40);
-			this.OverlayLabel.TabIndex = 1;
-			this.OverlayLabel.Text = "...";
-			this.OverlayLabel.WordWrap = false;
-			this.OverlayLabel.MouseUp += new System.Windows.Forms.MouseEventHandler(this.OverlayArea_Click);
+			this.CharacterNameLabel.AutoSize = true;
+			this.CharacterNameLabel.BackColor = System.Drawing.Color.Transparent;
+			this.CharacterNameLabel.Font = new System.Drawing.Font("Consolas", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+			this.CharacterNameLabel.Location = new System.Drawing.Point(8, 8);
+			this.CharacterNameLabel.Name = "CharacterNameLabel";
+			this.CharacterNameLabel.Size = new System.Drawing.Size(25, 13);
+			this.CharacterNameLabel.TabIndex = 1;
+			this.CharacterNameLabel.Text = "...";
+			this.CharacterNameLabel.MouseUp += new System.Windows.Forms.MouseEventHandler(this.OverlayArea_Click);
+			// 
+			// SystemNameLabel
+			// 
+			this.SystemNameLabel.AutoSize = true;
+			this.SystemNameLabel.BackColor = System.Drawing.Color.Transparent;
+			this.SystemNameLabel.Font = new System.Drawing.Font("Consolas", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+			this.SystemNameLabel.Location = new System.Drawing.Point(8, 24);
+			this.SystemNameLabel.Name = "SystemNameLabel";
+			this.SystemNameLabel.Size = new System.Drawing.Size(25, 13);
+			this.SystemNameLabel.TabIndex = 2;
+			this.SystemNameLabel.Text = "...";
+			this.SystemNameLabel.MouseUp += new System.Windows.Forms.MouseEventHandler(this.OverlayArea_Click);
 			// 
 			// ThumbnailOverlay
 			// 
@@ -69,7 +79,8 @@
 			this.BackColor = System.Drawing.Color.Black;
 			this.ClientSize = new System.Drawing.Size(284, 262);
 			this.ControlBox = false;
-			this.Controls.Add(this.OverlayLabel);
+			this.Controls.Add(this.SystemNameLabel);
+			this.Controls.Add(this.CharacterNameLabel);
 			this.Controls.Add(OverlayAreaPictureBox);
 			this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
 			this.MaximizeBox = false;
@@ -82,11 +93,13 @@
 			this.TransparencyKey = System.Drawing.Color.Black;
 			((System.ComponentModel.ISupportInitialize)(OverlayAreaPictureBox)).EndInit();
 			this.ResumeLayout(false);
+			this.PerformLayout();
 
 		}
 
 		#endregion
 
-		private System.Windows.Forms.RichTextBox OverlayLabel;
+		private System.Windows.Forms.Label CharacterNameLabel;
+		private System.Windows.Forms.Label SystemNameLabel;
 	}
 }

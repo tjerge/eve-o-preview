@@ -26,106 +26,135 @@ namespace EveOPreview.View
 
 	public void SetOverlayLabel(string characterName, string systemName, bool showSystemName, System.Drawing.Color characterColor, System.Drawing.Color systemColor, ZoomAnchor anchor)
 	{
-		this.OverlayLabel.Clear();
+		// Set character name label
+		this.CharacterNameLabel.Text = characterName;
+		this.CharacterNameLabel.ForeColor = characterColor;
 		
-		// Set alignment for the entire control
-		System.Windows.Forms.HorizontalAlignment alignment = GetAlignmentFromAnchor(anchor);
-		
-		// Add character name
-		this.OverlayLabel.SelectionStart = 0;
-		this.OverlayLabel.SelectionAlignment = alignment;
-		this.OverlayLabel.SelectionColor = characterColor;
-		this.OverlayLabel.AppendText(characterName);
-		
-		// Add system name if enabled
+		// Set system name label
 		if (showSystemName && !string.IsNullOrEmpty(systemName))
 		{
-			this.OverlayLabel.AppendText("\n");
-			this.OverlayLabel.SelectionAlignment = alignment;
-			this.OverlayLabel.SelectionColor = systemColor;
-			this.OverlayLabel.AppendText(systemName);
+			this.SystemNameLabel.Text = systemName;
+			this.SystemNameLabel.ForeColor = systemColor;
+			this.SystemNameLabel.Visible = true;
+		}
+		else
+		{
+			this.SystemNameLabel.Visible = false;
 		}
 		
-		// Reset selection
-		this.OverlayLabel.SelectionStart = 0;
-		this.OverlayLabel.SelectionLength = 0;
+		// Update alignment based on anchor
+		UpdateLabelAlignment(anchor);
 	}
 	
-	private System.Windows.Forms.HorizontalAlignment GetAlignmentFromAnchor(ZoomAnchor anchor)
+	private void UpdateLabelAlignment(ZoomAnchor anchor)
+	{
+		System.Drawing.ContentAlignment alignment = GetContentAlignmentFromAnchor(anchor);
+		this.CharacterNameLabel.TextAlign = alignment;
+		this.SystemNameLabel.TextAlign = alignment;
+	}
+	
+	private System.Drawing.ContentAlignment GetContentAlignmentFromAnchor(ZoomAnchor anchor)
 	{
 		switch (anchor)
 		{
 			case ZoomAnchor.NW:
-			case ZoomAnchor.W:
-			case ZoomAnchor.SW:
-				return System.Windows.Forms.HorizontalAlignment.Left;
+				return System.Drawing.ContentAlignment.TopLeft;
 			case ZoomAnchor.N:
-			case ZoomAnchor.C:
-			case ZoomAnchor.S:
-				return System.Windows.Forms.HorizontalAlignment.Center;
+				return System.Drawing.ContentAlignment.TopCenter;
 			case ZoomAnchor.NE:
+				return System.Drawing.ContentAlignment.TopRight;
+			case ZoomAnchor.W:
+				return System.Drawing.ContentAlignment.MiddleLeft;
+			case ZoomAnchor.C:
+				return System.Drawing.ContentAlignment.MiddleCenter;
 			case ZoomAnchor.E:
+				return System.Drawing.ContentAlignment.MiddleRight;
+			case ZoomAnchor.SW:
+				return System.Drawing.ContentAlignment.BottomLeft;
+			case ZoomAnchor.S:
+				return System.Drawing.ContentAlignment.BottomCenter;
 			case ZoomAnchor.SE:
-				return System.Windows.Forms.HorizontalAlignment.Right;
+				return System.Drawing.ContentAlignment.BottomRight;
 			default:
-				return System.Windows.Forms.HorizontalAlignment.Left;
+				return System.Drawing.ContentAlignment.TopLeft;
 		}
 	}		public void SetPropertiesOverlayLabel(int size, System.Drawing.Color c, ZoomAnchor anchor)
+	{
+		// Update font size for both labels
+		if (this.CharacterNameLabel.Font.Size != size)
 		{
-			if (this.OverlayLabel.Font.Size != size)
-			{
-				this.OverlayLabel.Font = new System.Drawing.Font(this.OverlayLabel.Font.FontFamily, size);
-			}
-
-			int margin = 5;
-
-			switch (anchor)
-			{
-				case ZoomAnchor.NW:
-					this.OverlayLabel.Left = margin;
-					this.OverlayLabel.Top = margin;
-					break;
-                case ZoomAnchor.N:
-                    this.OverlayLabel.Left = (this.Width / 2) - (this.OverlayLabel.Width / 2);
-                    this.OverlayLabel.Top = margin;
-                    break;
-                case ZoomAnchor.NE:
-                    this.OverlayLabel.Left = this.Width - this.OverlayLabel.Width - margin;
-                    this.OverlayLabel.Top = margin;
-                    break;
-                case ZoomAnchor.W:
-                    this.OverlayLabel.Left = margin;
-                    this.OverlayLabel.Top = (this.Height / 2) - (this.OverlayLabel.Height / 2);
-                    break;
-                case ZoomAnchor.C:
-                    this.OverlayLabel.Left = (this.Width / 2) - (this.OverlayLabel.Width / 2);
-                    this.OverlayLabel.Top = (this.Height / 2) - (this.OverlayLabel.Height / 2);
-                    break;
-                case ZoomAnchor.E:
-                    this.OverlayLabel.Left = this.Width - this.OverlayLabel.Width - margin;
-                    this.OverlayLabel.Top = (this.Height / 2) - (this.OverlayLabel.Height / 2);
-                    break;
-                case ZoomAnchor.SW:
-                    this.OverlayLabel.Left = margin;
-                    this.OverlayLabel.Top = this.Height - this.OverlayLabel.Height - margin;
-                    break;
-                case ZoomAnchor.S:
-                    this.OverlayLabel.Left = (this.Width / 2) - (this.OverlayLabel.Width / 2);
-                    this.OverlayLabel.Top = this.Height - this.OverlayLabel.Height - margin;
-                    break;
-                case ZoomAnchor.SE:
-                    this.OverlayLabel.Left = this.Width - this.OverlayLabel.Width - margin;
-                    this.OverlayLabel.Top = this.Height - this.OverlayLabel.Height - margin;
-                    break;
-            }
+			this.CharacterNameLabel.Font = new System.Drawing.Font(this.CharacterNameLabel.Font.FontFamily, size, System.Drawing.FontStyle.Regular);
+			this.SystemNameLabel.Font = new System.Drawing.Font(this.SystemNameLabel.Font.FontFamily, size, System.Drawing.FontStyle.Regular);
 		}
 
-		public void EnableOverlayLabel(bool enable)
-		{
-			this.OverlayLabel.Visible = enable;
-		}
+		int margin = 5;
+		int labelSpacing = 2; // Spacing between character name and system name
 
-		protected override CreateParams CreateParams
+		// Calculate positions based on anchor
+		switch (anchor)
+		{
+			case ZoomAnchor.NW:
+				this.CharacterNameLabel.Left = margin;
+				this.CharacterNameLabel.Top = margin;
+				this.SystemNameLabel.Left = margin;
+				this.SystemNameLabel.Top = this.CharacterNameLabel.Bottom + labelSpacing;
+				break;
+			case ZoomAnchor.N:
+				this.CharacterNameLabel.Left = (this.Width / 2) - (this.CharacterNameLabel.Width / 2);
+				this.CharacterNameLabel.Top = margin;
+				this.SystemNameLabel.Left = (this.Width / 2) - (this.SystemNameLabel.Width / 2);
+				this.SystemNameLabel.Top = this.CharacterNameLabel.Bottom + labelSpacing;
+				break;
+			case ZoomAnchor.NE:
+				this.CharacterNameLabel.Left = this.Width - this.CharacterNameLabel.Width - margin;
+				this.CharacterNameLabel.Top = margin;
+				this.SystemNameLabel.Left = this.Width - this.SystemNameLabel.Width - margin;
+				this.SystemNameLabel.Top = this.CharacterNameLabel.Bottom + labelSpacing;
+				break;
+			case ZoomAnchor.W:
+				this.CharacterNameLabel.Left = margin;
+				this.CharacterNameLabel.Top = (this.Height / 2) - (this.CharacterNameLabel.Height + this.SystemNameLabel.Height + labelSpacing) / 2;
+				this.SystemNameLabel.Left = margin;
+				this.SystemNameLabel.Top = this.CharacterNameLabel.Bottom + labelSpacing;
+				break;
+			case ZoomAnchor.C:
+				this.CharacterNameLabel.Left = (this.Width / 2) - (this.CharacterNameLabel.Width / 2);
+				this.CharacterNameLabel.Top = (this.Height / 2) - (this.CharacterNameLabel.Height + this.SystemNameLabel.Height + labelSpacing) / 2;
+				this.SystemNameLabel.Left = (this.Width / 2) - (this.SystemNameLabel.Width / 2);
+				this.SystemNameLabel.Top = this.CharacterNameLabel.Bottom + labelSpacing;
+				break;
+			case ZoomAnchor.E:
+				this.CharacterNameLabel.Left = this.Width - this.CharacterNameLabel.Width - margin;
+				this.CharacterNameLabel.Top = (this.Height / 2) - (this.CharacterNameLabel.Height + this.SystemNameLabel.Height + labelSpacing) / 2;
+				this.SystemNameLabel.Left = this.Width - this.SystemNameLabel.Width - margin;
+				this.SystemNameLabel.Top = this.CharacterNameLabel.Bottom + labelSpacing;
+				break;
+			case ZoomAnchor.SW:
+				this.SystemNameLabel.Left = margin;
+				this.SystemNameLabel.Top = this.Height - this.SystemNameLabel.Height - margin;
+				this.CharacterNameLabel.Left = margin;
+				this.CharacterNameLabel.Top = this.SystemNameLabel.Top - this.CharacterNameLabel.Height - labelSpacing;
+				break;
+			case ZoomAnchor.S:
+				this.SystemNameLabel.Left = (this.Width / 2) - (this.SystemNameLabel.Width / 2);
+				this.SystemNameLabel.Top = this.Height - this.SystemNameLabel.Height - margin;
+				this.CharacterNameLabel.Left = (this.Width / 2) - (this.CharacterNameLabel.Width / 2);
+				this.CharacterNameLabel.Top = this.SystemNameLabel.Top - this.CharacterNameLabel.Height - labelSpacing;
+				break;
+			case ZoomAnchor.SE:
+				this.SystemNameLabel.Left = this.Width - this.SystemNameLabel.Width - margin;
+				this.SystemNameLabel.Top = this.Height - this.SystemNameLabel.Height - margin;
+				this.CharacterNameLabel.Left = this.Width - this.CharacterNameLabel.Width - margin;
+				this.CharacterNameLabel.Top = this.SystemNameLabel.Top - this.CharacterNameLabel.Height - labelSpacing;
+				break;
+		}
+	}
+
+	public void EnableOverlayLabel(bool enable)
+	{
+		this.CharacterNameLabel.Visible = enable;
+		this.SystemNameLabel.Visible = enable && !string.IsNullOrEmpty(this.SystemNameLabel.Text);
+	}		protected override CreateParams CreateParams
 		{
 			get
 			{
