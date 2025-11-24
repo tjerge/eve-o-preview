@@ -114,6 +114,11 @@ public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuratio
 			return GetClientByPointer(this._activeClient.Handle);
 		}
 
+		public IEnumerable<string> GetAllClientTitles()
+		{
+			return _thumbnailViews.Values.Select(v => v.Title).Distinct().OrderBy(t => t);
+		}
+
 		public void SetActive(KeyValuePair<IntPtr, IThumbnailView> newClient)
 		{
 			this.GetActiveClient()?.ClearBorder();

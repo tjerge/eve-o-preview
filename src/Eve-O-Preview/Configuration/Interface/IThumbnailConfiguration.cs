@@ -85,6 +85,8 @@ namespace EveOPreview.Configuration
 		Keys GetClientHotkey(string currentClient);
 		void SetClientHotkey(string currentClient, Keys hotkey);
 		Keys StringToKey(string hotkey);
+		Dictionary<string, string> GetAllClientHotkeys();
+		void SetAllClientHotkeys(Dictionary<string, string> hotkeys);
 
 		bool IsPriorityClient(string currentClient);
 		bool IsExecutableToPreview(string processName);

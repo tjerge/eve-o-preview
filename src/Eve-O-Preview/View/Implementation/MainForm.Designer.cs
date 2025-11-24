@@ -36,6 +36,7 @@ namespace EveOPreview.View
 			ToolStripMenuItem ExitMenuItem;
 			ToolStripMenuItem TitleMenuItem;
 			ToolStripSeparator SeparatorMenuItem;
+			ToolStripMenuItem NewConfigWindowMenuItem;
 			TabControl ContentTabControl;
 			TabPage GeneralTabPage;
 			Panel GeneralSettingsPanel;
@@ -116,6 +117,7 @@ namespace EveOPreview.View
 			NotifyIcon = new NotifyIcon(components);
 			TrayMenu = new ContextMenuStrip(components);
 			RestoreWindowMenuItem = new ToolStripMenuItem();
+			NewConfigWindowMenuItem = new ToolStripMenuItem();
 			ExitMenuItem = new ToolStripMenuItem();
 			TitleMenuItem = new ToolStripMenuItem();
 			SeparatorMenuItem = new ToolStripSeparator();
@@ -170,14 +172,21 @@ namespace EveOPreview.View
 			// RestoreWindowMenuItem
 			// 
 			RestoreWindowMenuItem.Name = "RestoreWindowMenuItem";
-			RestoreWindowMenuItem.Size = new Size(201, 32);
+			RestoreWindowMenuItem.Size = new Size(250, 32);
 			RestoreWindowMenuItem.Text = "Restore";
 			RestoreWindowMenuItem.Click += RestoreMainForm_Handler;
+			// 
+			// NewConfigWindowMenuItem
+			// 
+			NewConfigWindowMenuItem.Name = "NewConfigWindowMenuItem";
+			NewConfigWindowMenuItem.Size = new Size(250, 32);
+			NewConfigWindowMenuItem.Text = "Settings (Material Design)";
+			NewConfigWindowMenuItem.Click += OpenNewConfigWindow_Handler;
 			// 
 			// ExitMenuItem
 			// 
 			ExitMenuItem.Name = "ExitMenuItem";
-			ExitMenuItem.Size = new Size(201, 32);
+			ExitMenuItem.Size = new Size(250, 32);
 			ExitMenuItem.Text = "Exit";
 			ExitMenuItem.Click += ExitMenuItemClick_Handler;
 			// 
@@ -1177,9 +1186,9 @@ namespace EveOPreview.View
 			// TrayMenu
 			// 
 			TrayMenu.ImageScalingSize = new Size(24, 24);
-			TrayMenu.Items.AddRange(new ToolStripItem[] { TitleMenuItem, RestoreWindowMenuItem, SeparatorMenuItem, ExitMenuItem });
+			TrayMenu.Items.AddRange(new ToolStripItem[] { TitleMenuItem, RestoreWindowMenuItem, NewConfigWindowMenuItem, SeparatorMenuItem, ExitMenuItem });
 			TrayMenu.Name = "contextMenuStrip1";
-			TrayMenu.Size = new Size(202, 106);
+			TrayMenu.Size = new Size(251, 138);
 			// 
 			// MainForm
 			// 

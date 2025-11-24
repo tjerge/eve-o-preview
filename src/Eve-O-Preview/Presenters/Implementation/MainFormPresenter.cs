@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Drawing;
 using EveOPreview.Configuration;
 using EveOPreview.Mediator.Messages;
+using EveOPreview.Services;
 using EveOPreview.View;
 using MediatR;
 
@@ -19,18 +20,20 @@ namespace EveOPreview.Presenters
 		private readonly IMediator _mediator;
 		private readonly IThumbnailConfiguration _configuration;
 		private readonly IConfigurationStorage _configurationStorage;
+		private readonly IThumbnailManager _thumbnailManager;
 		private readonly IDictionary<string, IThumbnailDescription> _descriptionsCache;
 		private bool _suppressSizeNotifications;
 
 		private bool _exitApplication;
 		#endregion
 
-		public MainFormPresenter(IApplicationController controller, IMainFormView view, IMediator mediator, IThumbnailConfiguration configuration, IConfigurationStorage configurationStorage)
+		public MainFormPresenter(IApplicationController controller, IMainFormView view, IMediator mediator, IThumbnailConfiguration configuration, IConfigurationStorage configurationStorage, IThumbnailManager thumbnailManager)
 			: base(controller, view)
 		{
 			this._mediator = mediator;
 			this._configuration = configuration;
 			this._configurationStorage = configurationStorage;
+			this._thumbnailManager = thumbnailManager;
 
 			this._descriptionsCache = new Dictionary<string, IThumbnailDescription>();
 
@@ -46,10 +49,15 @@ namespace EveOPreview.Presenters
 			this.View.DocumentationLinkActivated = this.OpenDocumentationLink;
 			this.View.ApplicationExitRequested = this.ExitApplication;
 
-			this.View.IconName = this._configuration.IconName;
+		this.View.IconName = this._configuration.IconName;
+		
+		// Inject configuration and thumbnail manager into MainForm for WPF config window
+		if (view is MainForm mainForm)
+		{
+			mainForm.SetConfiguration(configuration);
+			mainForm.SetThumbnailManager(thumbnailManager);
 		}
-
-		private void Activate()
+	}		private void Activate()
 		{
 			this._suppressSizeNotifications = true;
 			this.LoadApplicationSettings();

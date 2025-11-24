@@ -388,6 +388,16 @@ namespace EveOPreview.Configuration.Implementation
 			return rawValue != null ? (Keys)rawValue : Keys.None;
 		}
 
+		public Dictionary<string, string> GetAllClientHotkeys()
+		{
+			return new Dictionary<string, string>(this.ClientHotkey ?? new Dictionary<string, string>());
+		}
+
+		public void SetAllClientHotkeys(Dictionary<string, string> hotkeys)
+		{
+			this.ClientHotkey = hotkeys ?? new Dictionary<string, string>();
+		}
+
 		public bool IsPriorityClient(string currentClient)
 		{
 			return this.PriorityClients.Contains(currentClient);

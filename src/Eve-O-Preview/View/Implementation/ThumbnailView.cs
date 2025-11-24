@@ -103,16 +103,15 @@ namespace EveOPreview.View
 				_systemName = value;
 				UpdateOverlayLabels();
 			}
-		}
 	}
+}
 
-	private void UpdateOverlayLabels()
-	{
-		string characterName = this.Text.Replace("EVE - ", "").Replace("EVE Frontier - ", "*");
-		this._overlay.SetOverlayLabel(characterName, _systemName, _config.EnableSystemNameDisplay, _config.OverlayLabelColor, _config.SystemNameColor, _config.OverlayLabelAnchor);
-		this._overlay.SetPropertiesOverlayLabel(_config.OverlayLabelSize, _config.OverlayLabelColor, _config.OverlayLabelAnchor);
-	}
-
+private void UpdateOverlayLabels()
+{
+	string characterName = this.Text.Replace("EVE - ", "").Replace("EVE Frontier - ", "");
+	this._overlay.SetOverlayLabel(characterName, _systemName, _config.EnableSystemNameDisplay, _config.OverlayLabelColor, _config.SystemNameColor, _config.OverlayLabelAnchor);
+	this._overlay.SetPropertiesOverlayLabel(_config.OverlayLabelSize, _config.OverlayLabelColor, _config.OverlayLabelAnchor);
+}
 	public bool IsActive { get; set; }		public bool IsOverlayEnabled { get; set; }
 		public ZoomAnchor ClientZoomAnchor { get; set; }
 
@@ -254,6 +253,7 @@ namespace EveOPreview.View
 		}
 		public void SetOverlayLabel()
 		{
+			UpdateOverlayLabels();
 		}
 
 		public void SetTopMost(bool enableTopmost)
@@ -459,16 +459,17 @@ namespace EveOPreview.View
 			overlayLocation.X += borderWidth;
 			overlayLocation.Y += (this.Size.Height - this.ClientSize.Height) - borderWidth;
 
-			this._isLocationChanged = false;
-			this._overlay.Size = overlaySize;
+		this._isLocationChanged = false;
+		this._overlay.Size = overlaySize;
 
-			this._overlay.SetPropertiesOverlayLabel(_config.OverlayLabelSize, _config.OverlayLabelColor, _config.OverlayLabelAnchor);
+		// Update the overlay labels (character name and system name)
+		UpdateOverlayLabels();
 
-			this._overlay.Location = overlayLocation;
-			this._overlay.Refresh();
-		}
+		this._overlay.SetPropertiesOverlayLabel(_config.OverlayLabelSize, _config.OverlayLabelColor, _config.OverlayLabelAnchor);
 
-		private void SuppressResizeEvent()
+		this._overlay.Location = overlayLocation;
+		this._overlay.Refresh();
+	}		private void SuppressResizeEvent()
 		{
 			// Workaround for WinForms issue with the Resize event being fired with inconsistent ClientSize value
 			// Any Resize events fired before this timestamp will be ignored

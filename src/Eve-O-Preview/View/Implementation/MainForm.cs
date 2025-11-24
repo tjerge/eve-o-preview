@@ -1,5 +1,7 @@
 using EveOPreview.Configuration;
+using EveOPreview.Presenters;
 using EveOPreview.Properties;
+using EveOPreview.Services;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -22,6 +24,8 @@ namespace EveOPreview.View
 		private Size _minimumSize;
 		private Size _maximumSize;
 		private string _iconName;
+		private IThumbnailConfiguration _configuration;
+		private IThumbnailManager _thumbnailManager;
 		#endregion
 
 		public MainForm(ApplicationContext context)
@@ -43,6 +47,22 @@ namespace EveOPreview.View
 			this.InitFormSize();
 
 			this.AnimationStyleCombo.DataSource = Enum.GetValues(typeof(AnimationStyle));
+		}
+
+		/// <summary>
+		/// Sets the configuration reference for the new WPF configuration window
+		/// </summary>
+		public void SetConfiguration(IThumbnailConfiguration configuration)
+		{
+			_configuration = configuration;
+		}
+
+		/// <summary>
+		/// Sets the thumbnail manager reference for the new WPF configuration window
+		/// </summary>
+		public void SetThumbnailManager(IThumbnailManager thumbnailManager)
+		{
+			_thumbnailManager = thumbnailManager;
 		}
 
 		public bool MinimizeToTray
@@ -516,6 +536,39 @@ namespace EveOPreview.View
 		private void ExitMenuItemClick_Handler(object sender, EventArgs e)
 		{
 			this.ApplicationExitRequested?.Invoke();
+		}
+
+		private void OpenNewConfigWindow_Handler(object sender, EventArgs e)
+		{
+			// Launch the new WPF Material Design configuration window
+			try
+			{
+				if (_configuration != null)
+				{
+					var result = ConfigurationWindowLauncher.ShowDialog(_configuration, _thumbnailManager);
+					if (result == true)
+					{
+						// Configuration was saved, trigger refresh
+						this.ApplicationSettingsChanged?.Invoke();
+					}
+				}
+				else
+				{
+					System.Windows.Forms.MessageBox.Show(
+						"Configuration not available. Please use the main settings tab.",
+						"Information",
+						System.Windows.Forms.MessageBoxButtons.OK,
+						System.Windows.Forms.MessageBoxIcon.Information);
+				}
+			}
+			catch (Exception ex)
+			{
+				System.Windows.Forms.MessageBox.Show(
+					$"Error opening Material Design configuration window:\n\n{ex.Message}\n\nPlease use the main settings tab.",
+					"Error",
+					System.Windows.Forms.MessageBoxButtons.OK,
+					System.Windows.Forms.MessageBoxIcon.Error);
+			}
 		}
 		#endregion
 

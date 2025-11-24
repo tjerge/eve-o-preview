@@ -90,6 +90,8 @@
     <PackageReference Include="LightInject">
       <Version>7.0.1</Version>
     </PackageReference>
+    <PackageReference Include="MaterialDesignThemes" Version="5.1.0" />
+    <PackageReference Include="MaterialDesignColors" Version="3.1.0" />
     <PackageReference Include="MediatR">
       <Version>9.0.0</Version>
     </PackageReference>
