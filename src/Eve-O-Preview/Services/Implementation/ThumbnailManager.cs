@@ -39,6 +39,7 @@ private readonly IChatlogMonitor _chatlogMonitor;
 private readonly Dictionary<IntPtr, IThumbnailView> _thumbnailViews;
 private readonly Dictionary<string, string> _characterSystemCache; // Cache system names before thumbnails exist
 	private (IntPtr Handle, string Title) _activeClient;
+	private (IntPtr Handle, string Title) _pendingActiveClient; // Track pending activation for rapid hotkey presses
 	private IntPtr _externalApplication;
 
 	private readonly object _locationChangeNotificationSyncRoot;
@@ -64,7 +65,9 @@ public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuratio
 	this._windowFocusEventService = windowFocusEventService;
 	this._chatlogMonitor = chatlogMonitor;
 
-	this._activeClient = (IntPtr.Zero, ThumbnailManager.DEFAULT_CLIENT_TITLE);		this.EnableViewEvents();
+	this._activeClient = (IntPtr.Zero, ThumbnailManager.DEFAULT_CLIENT_TITLE);
+	this._pendingActiveClient = (IntPtr.Zero, null); // Initialize pending client tracker
+	this.EnableViewEvents();
 			this._isHoverEffectActive = false;
 
 			this._refreshCycleCount = 0;
@@ -141,13 +144,23 @@ public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuratio
 		}
 	}		public void SetActive(KeyValuePair<IntPtr, IThumbnailView> newClient)
 		{
-			this.GetActiveClient()?.ClearBorder();
+			// Clear border from ALL clients (not just the current active one)
+			// This prevents stale highlights when cycling quickly
+			foreach (var view in this._thumbnailViews.Values)
+			{
+				view.ClearBorder();
+			}
+			
+			// Set pending client immediately for rapid hotkey presses
+			this._pendingActiveClient = (newClient.Key, newClient.Value.Title);
+			
 #if LINUX
 			this._windowManager.ActivateWindow(newClient.Key, newClient.Value.Title);
 #else
 			this._windowManager.ActivateWindow(newClient.Key, this._configuration.WindowsAnimationStyle);
 #endif
-			this.SwitchActiveClient(newClient.Key, newClient.Value.Title);
+			// Don't call SwitchActiveClient here - let OnForegroundWindowChanged handle it
+			// when Windows confirms the window has actually received focus
 
 			newClient.Value.SetHighlight();
 			newClient.Value.Refresh(true);
@@ -157,6 +170,11 @@ public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuratio
 		{
 			IOrderedEnumerable<KeyValuePair<string, int>> clientOrder;
 			Dictionary<string, int> _cycleOrder = new Dictionary<string, int>(cycleOrder);
+
+			// Use pending client if set (for rapid hotkey presses), otherwise use confirmed active client
+			var currentClient = this._pendingActiveClient.Handle != IntPtr.Zero 
+				? this._pendingActiveClient 
+				: this._activeClient;
 
 			if ( _cycleOrder.Count == 0 ) 
 			{
@@ -181,7 +199,7 @@ public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuratio
 
 			foreach (var t in clientOrder)
 			{
-				if (t.Key == _activeClient.Title && t.Key != "EVE")
+				if (t.Key == currentClient.Title && t.Key != "EVE")
 				{
 					setNextClient = true;
 					lastClient = _thumbnailViews.FirstOrDefault(x => x.Value.Title == t.Key).Value;
@@ -189,9 +207,9 @@ public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuratio
 				}
 
 				// cycle through login screens ?
-				if (t.Key == _activeClient.Title && t.Key == "EVE")
+				if (t.Key == currentClient.Title && t.Key == "EVE")
 				{
-					lastClient = _thumbnailViews.FirstOrDefault(x => x.Value.Title == t.Key && x.Value.Id == _activeClient.Handle).Value;
+					lastClient = _thumbnailViews.FirstOrDefault(x => x.Value.Title == t.Key && x.Value.Id == currentClient.Handle).Value;
 					if (lastClient == null)
 					{
 						setNextClient = true;
@@ -236,22 +254,20 @@ public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuratio
 				}
 			}
 
-			// we didn't get a next one. just get the first one from the start.
-			foreach (var t in clientOrder)
+		// we didn't get a next one. just get the first one from the start.
+		foreach (var t in clientOrder)
+		{
+			if (_thumbnailViews.Any(x => x.Value.Title == t.Key))
 			{
-				if (_thumbnailViews.Any(x => x.Value.Title == t.Key))
-				{
-					var ptr = t.Key.Equals("EVE") ?
-						(isForwards ? _thumbnailViews.OrderBy(x => x.Value.Id.ToInt64()) : _thumbnailViews.OrderByDescending(x => x.Value.Id.ToInt64())).First(x => x.Value.Title == t.Key)
-						: _thumbnailViews.First(x => x.Value.Title == t.Key);
-					SetActive(ptr);
-					_activeClient = (ptr.Key, t.Key);
-					return;
-				}
+				var ptr = t.Key.Equals("EVE") ?
+					(isForwards ? _thumbnailViews.OrderBy(x => x.Value.Id.ToInt64()) : _thumbnailViews.OrderByDescending(x => x.Value.Id.ToInt64())).First(x => x.Value.Title == t.Key)
+					: _thumbnailViews.First(x => x.Value.Title == t.Key);
+				SetActive(ptr);
+				// Don't set _activeClient directly here - let OnForegroundWindowChanged handle it
+				return;
 			}
 		}
-
-	public void RegisterCycleClientHotkey(IEnumerable<Keys> keys, bool isForwards, Dictionary<string, int> cycleOrder)
+	}	public void RegisterCycleClientHotkey(IEnumerable<Keys> keys, bool isForwards, Dictionary<string, int> cycleOrder)
 	{
 		foreach (var hotkey in keys)
 		{
@@ -687,13 +703,23 @@ public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuratio
 				return;
 			}
 
-			// Minimize the currently active client if needed
-			if (this._configuration.MinimizeInactiveClients && !this._configuration.IsPriorityClient(this._activeClient.Title))
-			{
-				this._windowManager.MinimizeWindow(this._activeClient.Handle, this._configuration.WindowsAnimationStyle, false);
-			}
+			// Store the previous client for minimization after switch
+			var previousClient = this._activeClient;
 
+			// Update to the new active client first
 			this._activeClient = (foregroundClientHandle, foregroundClientTitle);
+			
+			// Clear pending client since we've confirmed the activation
+			this._pendingActiveClient = (IntPtr.Zero, null);
+
+			// Minimize the previously active client after switching focus
+			// This ensures the new window gets focus before the old one is minimized
+			if (this._configuration.MinimizeInactiveClients 
+				&& previousClient.Handle != IntPtr.Zero 
+				&& !this._configuration.IsPriorityClient(previousClient.Title))
+			{
+				this._windowManager.MinimizeWindow(previousClient.Handle, this._configuration.WindowsAnimationStyle, false);
+			}
 		}
 
 		private void ThumbnailViewFocused(IntPtr id)
@@ -735,28 +761,30 @@ public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuratio
 			this._isHoverEffectActive = false;
 		}
 
-		private void ThumbnailActivated(IntPtr id)
-		{
-			IThumbnailView view = this._thumbnailViews[id];
+	private void ThumbnailActivated(IntPtr id)
+	{
+		IThumbnailView view = this._thumbnailViews[id];
 
-			Task.Run(() =>
-				{
+		// Set pending client immediately for consistency
+		this._pendingActiveClient = (view.Id, view.Title);
+
+		Task.Run(() =>
+			{
 #if LINUX
-					this._windowManager.ActivateWindow(view.Id, view.Title);
+				this._windowManager.ActivateWindow(view.Id, view.Title);
 #else
-					this._windowManager.ActivateWindow(view.Id, this._configuration.WindowsAnimationStyle);
+				this._windowManager.ActivateWindow(view.Id, this._configuration.WindowsAnimationStyle);
 #endif
-				})
-				.ContinueWith((task) =>
-				{
-					// This code should be executed on UI thread
-					this.SwitchActiveClient(view.Id, view.Title);
-					this.UpdateClientLayouts();
-					this.RefreshThumbnails();
-				}, TaskScheduler.FromCurrentSynchronizationContext());
-		}
-
-		private void ThumbnailDeactivated(IntPtr id, bool switchOut)
+			})
+			.ContinueWith((task) =>
+			{
+				// This code should be executed on UI thread
+				// Don't call SwitchActiveClient here - let OnForegroundWindowChanged handle it
+				// when Windows confirms the window has actually received focus
+				this.UpdateClientLayouts();
+				this.RefreshThumbnails();
+			}, TaskScheduler.FromCurrentSynchronizationContext());
+	}		private void ThumbnailDeactivated(IntPtr id, bool switchOut)
 		{
 			if (switchOut)
 			{

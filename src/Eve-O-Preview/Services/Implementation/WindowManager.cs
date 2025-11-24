@@ -108,22 +108,44 @@ namespace EveOPreview.Services.Implementation
 			}
 		}
 
-		// if building for LINUX the window handling is slightly different
+	// if building for LINUX the window handling is slightly different
 #if LINUX
-		private void WindowsActivateWindow(IntPtr handle)
+	private void WindowsActivateWindow(IntPtr handle)
+	{
+		// Use AttachThreadInput to reliably set foreground window
+		IntPtr foregroundWindow = User32NativeMethods.GetForegroundWindow();
+		if (foregroundWindow != handle && foregroundWindow != IntPtr.Zero)
+		{
+			uint foregroundThreadId = User32NativeMethods.GetWindowThreadProcessId(foregroundWindow, IntPtr.Zero);
+			uint currentThreadId = User32NativeMethods.GetCurrentThreadId();
+			
+			if (foregroundThreadId != currentThreadId)
+			{
+				// Attach to the foreground thread to gain permission to set foreground window
+				User32NativeMethods.AttachThreadInput(currentThreadId, foregroundThreadId, true);
+				User32NativeMethods.SetForegroundWindow(handle);
+				User32NativeMethods.SetFocus(handle);
+				User32NativeMethods.AttachThreadInput(currentThreadId, foregroundThreadId, false);
+			}
+			else
+			{
+				User32NativeMethods.SetForegroundWindow(handle);
+				User32NativeMethods.SetFocus(handle);
+			}
+		}
+		else
 		{
 			User32NativeMethods.SetForegroundWindow(handle);
 			User32NativeMethods.SetFocus(handle);
-
-			int style = User32NativeMethods.GetWindowLong(handle, InteropConstants.GWL_STYLE);
-
-			if ((style & InteropConstants.WS_MINIMIZE) == InteropConstants.WS_MINIMIZE)
-			{
-				User32NativeMethods.ShowWindowAsync(handle, InteropConstants.SW_RESTORE);
-			}
 		}
 
-		private void WineActivateWindow(string windowName)
+		int style = User32NativeMethods.GetWindowLong(handle, InteropConstants.GWL_STYLE);
+
+		if ((style & InteropConstants.WS_MINIMIZE) == InteropConstants.WS_MINIMIZE)
+		{
+			User32NativeMethods.ShowWindowAsync(handle, InteropConstants.SW_RESTORE);
+		}
+	}		private void WineActivateWindow(string windowName)
 		{
 			// On Wine it is not possible to manipulate windows directly.
 			// They are managed by native Window Manager
@@ -197,30 +219,52 @@ namespace EveOPreview.Services.Implementation
 #endif
 
 #if WINDOWS
-		public void ActivateWindow(IntPtr handle, AnimationStyle animation)
+	public void ActivateWindow(IntPtr handle, AnimationStyle animation)
+	{
+		// Use AttachThreadInput to reliably set foreground window
+		IntPtr foregroundWindow = User32NativeMethods.GetForegroundWindow();
+		if (foregroundWindow != handle && foregroundWindow != IntPtr.Zero)
+		{
+			uint foregroundThreadId = User32NativeMethods.GetWindowThreadProcessId(foregroundWindow, IntPtr.Zero);
+			uint currentThreadId = User32NativeMethods.GetCurrentThreadId();
+			
+			if (foregroundThreadId != currentThreadId)
+			{
+				// Attach to the foreground thread to gain permission to set foreground window
+				User32NativeMethods.AttachThreadInput(currentThreadId, foregroundThreadId, true);
+				User32NativeMethods.SetForegroundWindow(handle);
+				User32NativeMethods.SetFocus(handle);
+				User32NativeMethods.AttachThreadInput(currentThreadId, foregroundThreadId, false);
+			}
+			else
+			{
+				User32NativeMethods.SetForegroundWindow(handle);
+				User32NativeMethods.SetFocus(handle);
+			}
+		}
+		else
 		{
 			User32NativeMethods.SetForegroundWindow(handle);
 			User32NativeMethods.SetFocus(handle);
-
-			int style = User32NativeMethods.GetWindowLong(handle, InteropConstants.GWL_STYLE);
-
-			if ((style & InteropConstants.WS_MINIMIZE) == InteropConstants.WS_MINIMIZE)
-			{
-				switch (animation)
-				{
-					case AnimationStyle.OriginalAnimation:
-						User32NativeMethods.ShowWindowAsync(handle, InteropConstants.SW_RESTORE);
-						break;
-					case AnimationStyle.NoAnimation:
-						TurnOffAnimation();
-						User32NativeMethods.ShowWindowAsync(handle, InteropConstants.SW_RESTORE);
-						RestoreAnimation();
-						break;
-				}
-			}
 		}
 
-		public void MinimizeWindow(IntPtr handle, AnimationStyle animation, bool enableAnimation)
+		int style = User32NativeMethods.GetWindowLong(handle, InteropConstants.GWL_STYLE);
+
+		if ((style & InteropConstants.WS_MINIMIZE) == InteropConstants.WS_MINIMIZE)
+		{
+			switch (animation)
+			{
+				case AnimationStyle.OriginalAnimation:
+					User32NativeMethods.ShowWindowAsync(handle, InteropConstants.SW_RESTORE);
+					break;
+				case AnimationStyle.NoAnimation:
+					TurnOffAnimation();
+					User32NativeMethods.ShowWindowAsync(handle, InteropConstants.SW_RESTORE);
+					RestoreAnimation();
+					break;
+			}
+		}
+	}		public void MinimizeWindow(IntPtr handle, AnimationStyle animation, bool enableAnimation)
 		{
 			if (enableAnimation)
 			{

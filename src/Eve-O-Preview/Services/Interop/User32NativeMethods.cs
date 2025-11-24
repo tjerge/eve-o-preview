@@ -8,19 +8,26 @@ namespace EveOPreview.Services.Interop
 		public const uint SPI_SETANIMATION = 0x0049;
 		public const uint SPI_GETANIMATION = 0x0048;
 
+		[DllImport("kernel32.dll")]
+		public static extern uint GetCurrentThreadId();
+
 		[DllImport("user32.dll")]
 		public static extern IntPtr GetForegroundWindow();
 
 		[DllImport("user32.dll")]
 		public static extern bool SetForegroundWindow(IntPtr window);
 
-		[DllImport("user32.dll")]
-		public static extern void SetFocus(IntPtr window);
+	[DllImport("user32.dll")]
+	public static extern void SetFocus(IntPtr window);
 
-		[DllImport("user32.dll")]
-		public static extern void EnableWindow(IntPtr window, bool isEnabled);
+	[DllImport("user32.dll")]
+	public static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr ProcessId);
 
-		[DllImport("user32.dll")]
+	[DllImport("user32.dll")]
+	public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+
+	[DllImport("user32.dll")]
+	public static extern void EnableWindow(IntPtr window, bool isEnabled);		[DllImport("user32.dll")]
 		public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
 
 		[DllImport("User32.dll")]
