@@ -47,6 +47,8 @@ namespace EveOPreview.View
 		void SetDocumentationUrl(string url);
 		void SetVersionInfo(string version);
 		void SetThumbnailSizeLimitations(Size minimumSize, Size maximumSize);
+		
+		IntPtr GetWindowHandle();
 
 		void Minimize();
 

@@ -65,6 +65,10 @@ namespace EveOPreview.Presenters
 			this.LoadApplicationSettings();
 			this.View.SetDocumentationUrl(MainFormPresenter.FORUM_URL);
 			this.View.SetVersionInfo(this.GetApplicationVersion());
+			
+			// Set the window handle for global hotkeys
+			this._thumbnailManager.SetHotkeyWindowHandle(this.View.GetWindowHandle());
+			
 			if (this._configuration.MinimizeToTray)
 			{
 				this.View.Minimize();

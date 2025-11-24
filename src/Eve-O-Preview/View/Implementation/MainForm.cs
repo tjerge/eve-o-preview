@@ -638,5 +638,10 @@ namespace EveOPreview.View
 		{
 
 		}
+
+		public IntPtr GetWindowHandle()
+		{
+			return this.Handle;
+		}
 	}
 }

@@ -50,6 +50,7 @@ private readonly Dictionary<string, string> _characterSystemCache; // Cache syst
 	private int _refreshCycleCount;
 	private int _hideThumbnailsDelay;
 
+	private IntPtr _hotkeyWindowHandle = IntPtr.Zero;
 	private List<HotkeyHandler> _cycleClientHotkeyHandlers = new List<HotkeyHandler>();
 	#endregion
 
@@ -83,21 +84,9 @@ public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuratio
 		// Subscribe to window focus changes for instant border updates
 		this._windowFocusEventService.ForegroundWindowChanged += OnForegroundWindowChanged;
 
-		RegisterCycleClientHotkey(this._configuration.CycleGroup1ForwardHotkeys?.Select(x => this._configuration.StringToKey(x)), true, this._configuration.CycleGroup1ClientsOrder);
-			RegisterCycleClientHotkey(this._configuration.CycleGroup1BackwardHotkeys?.Select(x => this._configuration.StringToKey(x)), false, this._configuration.CycleGroup1ClientsOrder);
-
-			RegisterCycleClientHotkey(this._configuration.CycleGroup2ForwardHotkeys?.Select(x => this._configuration.StringToKey(x)), true, this._configuration.CycleGroup2ClientsOrder);
-			RegisterCycleClientHotkey(this._configuration.CycleGroup2BackwardHotkeys?.Select(x => this._configuration.StringToKey(x)), false, this._configuration.CycleGroup2ClientsOrder);
-
-			RegisterCycleClientHotkey(this._configuration.CycleGroup3ForwardHotkeys?.Select(x => this._configuration.StringToKey(x)), true, this._configuration.CycleGroup3ClientsOrder);
-			RegisterCycleClientHotkey(this._configuration.CycleGroup3BackwardHotkeys?.Select(x => this._configuration.StringToKey(x)), false, this._configuration.CycleGroup3ClientsOrder);
-
-			RegisterCycleClientHotkey(this._configuration.CycleGroup4ForwardHotkeys?.Select(x => this._configuration.StringToKey(x)), true, this._configuration.CycleGroup4ClientsOrder);
-			RegisterCycleClientHotkey(this._configuration.CycleGroup4BackwardHotkeys?.Select(x => this._configuration.StringToKey(x)), false, this._configuration.CycleGroup4ClientsOrder);
-
-			RegisterCycleClientHotkey(this._configuration.CycleGroup5ForwardHotkeys?.Select(x => this._configuration.StringToKey(x)), true, this._configuration.CycleGroup5ClientsOrder);
-			RegisterCycleClientHotkey(this._configuration.CycleGroup5BackwardHotkeys?.Select(x => this._configuration.StringToKey(x)), false, this._configuration.CycleGroup5ClientsOrder);
-		}
+		// Note: Cycle client hotkeys will be registered later when SetHotkeyWindowHandle is called
+		// with a valid window handle from the main form
+	}
 
 		public IThumbnailView GetClientByTitle(string title)
 		{
@@ -114,12 +103,43 @@ public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuratio
 			return GetClientByPointer(this._activeClient.Handle);
 		}
 
-		public IEnumerable<string> GetAllClientTitles()
-		{
-			return _thumbnailViews.Values.Select(v => v.Title).Distinct().OrderBy(t => t);
-		}
+	public IEnumerable<string> GetAllClientTitles()
+	{
+		return _thumbnailViews.Values.Select(v => v.Title).Distinct().OrderBy(t => t);
+	}
 
-		public void SetActive(KeyValuePair<IntPtr, IThumbnailView> newClient)
+	public void SetHotkeyWindowHandle(IntPtr handle)
+	{
+		this._hotkeyWindowHandle = handle;
+		
+		// Re-register all cycle client hotkeys with the new window handle
+		if (handle != IntPtr.Zero)
+		{
+			// Unregister existing hotkeys
+			foreach (var handler in _cycleClientHotkeyHandlers)
+			{
+				handler.Unregister();
+				handler.Dispose();
+			}
+			_cycleClientHotkeyHandlers.Clear();
+			
+			// Re-register with the new window handle
+			RegisterCycleClientHotkey(this._configuration.CycleGroup1ForwardHotkeys?.Select(x => this._configuration.StringToKey(x)), true, this._configuration.CycleGroup1ClientsOrder);
+			RegisterCycleClientHotkey(this._configuration.CycleGroup1BackwardHotkeys?.Select(x => this._configuration.StringToKey(x)), false, this._configuration.CycleGroup1ClientsOrder);
+
+			RegisterCycleClientHotkey(this._configuration.CycleGroup2ForwardHotkeys?.Select(x => this._configuration.StringToKey(x)), true, this._configuration.CycleGroup2ClientsOrder);
+			RegisterCycleClientHotkey(this._configuration.CycleGroup2BackwardHotkeys?.Select(x => this._configuration.StringToKey(x)), false, this._configuration.CycleGroup2ClientsOrder);
+
+			RegisterCycleClientHotkey(this._configuration.CycleGroup3ForwardHotkeys?.Select(x => this._configuration.StringToKey(x)), true, this._configuration.CycleGroup3ClientsOrder);
+			RegisterCycleClientHotkey(this._configuration.CycleGroup3BackwardHotkeys?.Select(x => this._configuration.StringToKey(x)), false, this._configuration.CycleGroup3ClientsOrder);
+
+			RegisterCycleClientHotkey(this._configuration.CycleGroup4ForwardHotkeys?.Select(x => this._configuration.StringToKey(x)), true, this._configuration.CycleGroup4ClientsOrder);
+			RegisterCycleClientHotkey(this._configuration.CycleGroup4BackwardHotkeys?.Select(x => this._configuration.StringToKey(x)), false, this._configuration.CycleGroup4ClientsOrder);
+
+			RegisterCycleClientHotkey(this._configuration.CycleGroup5ForwardHotkeys?.Select(x => this._configuration.StringToKey(x)), true, this._configuration.CycleGroup5ClientsOrder);
+			RegisterCycleClientHotkey(this._configuration.CycleGroup5BackwardHotkeys?.Select(x => this._configuration.StringToKey(x)), false, this._configuration.CycleGroup5ClientsOrder);
+		}
+	}		public void SetActive(KeyValuePair<IntPtr, IThumbnailView> newClient)
 		{
 			this.GetActiveClient()?.ClearBorder();
 #if LINUX
@@ -231,28 +251,26 @@ public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuratio
 			}
 		}
 
-		public void RegisterCycleClientHotkey(IEnumerable<Keys> keys, bool isForwards, Dictionary<string, int> cycleOrder)
+	public void RegisterCycleClientHotkey(IEnumerable<Keys> keys, bool isForwards, Dictionary<string, int> cycleOrder)
+	{
+		foreach (var hotkey in keys)
 		{
-			foreach (var hotkey in keys)
+			if (hotkey == Keys.None)
 			{
-				if (hotkey == Keys.None)
-				{
-					return;
-				}
-
-				var newHandler = new HotkeyHandler(default(IntPtr), hotkey);
-				newHandler.Pressed += (object s, HandledEventArgs e) =>
-				{
-					this.CycleNextClient(isForwards, cycleOrder);
-					e.Handled = true;
-				};
-
-				newHandler.Register();
-				this._cycleClientHotkeyHandlers.Add(newHandler);
+				return;
 			}
-		}
 
-	public void Start()
+			var newHandler = new HotkeyHandler(this._hotkeyWindowHandle, hotkey);
+			newHandler.Pressed += (object s, HandledEventArgs e) =>
+			{
+				this.CycleNextClient(isForwards, cycleOrder);
+				e.Handled = true;
+			};
+
+			newHandler.Register();
+			this._cycleClientHotkeyHandlers.Add(newHandler);
+		}
+	}	public void Start()
 	{
 		this._thumbnailUpdateTimer.Start();
 		this._windowFocusEventService.Start();

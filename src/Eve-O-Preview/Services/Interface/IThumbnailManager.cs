@@ -15,5 +15,7 @@ namespace EveOPreview.Services
 		IThumbnailView GetClientByPointer(System.IntPtr ptr);
 		IThumbnailView GetActiveClient();
 		IEnumerable<string> GetAllClientTitles();
+		
+		void SetHotkeyWindowHandle(System.IntPtr handle);
 	}
 }
