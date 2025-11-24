@@ -14,7 +14,7 @@ namespace EveOPreview.View
 	{
 		private static bool _isWpfInitialized = false;
 
-		public static bool? ShowDialog(IThumbnailConfiguration config, IThumbnailManager thumbnailManager = null)
+		public static bool? ShowDialog(IThumbnailConfiguration config, IThumbnailManager thumbnailManager = null, IConfigurationStorage configurationStorage = null, Action onConfigurationSaved = null)
 		{
 			try
 			{
@@ -34,7 +34,7 @@ namespace EveOPreview.View
 			}
 
 			LogDebug("Creating ConfigurationWindow...");
-			var window = new ConfigurationWindow(config, thumbnailManager);
+			var window = new ConfigurationWindow(config, thumbnailManager, configurationStorage, onConfigurationSaved);
 			LogDebug("ConfigurationWindow created, showing dialog...");
 			
 			var result = window.ShowDialog();

@@ -26,6 +26,7 @@ namespace EveOPreview.View
 		private string _iconName;
 		private IThumbnailConfiguration _configuration;
 		private IThumbnailManager _thumbnailManager;
+		private IConfigurationStorage _configurationStorage;
 		#endregion
 
 		public MainForm(ApplicationContext context)
@@ -63,6 +64,14 @@ namespace EveOPreview.View
 		public void SetThumbnailManager(IThumbnailManager thumbnailManager)
 		{
 			_thumbnailManager = thumbnailManager;
+		}
+
+		/// <summary>
+		/// Sets the configuration storage reference for the new WPF configuration window
+		/// </summary>
+		public void SetConfigurationStorage(IConfigurationStorage configurationStorage)
+		{
+			_configurationStorage = configurationStorage;
 		}
 
 		public bool MinimizeToTray
@@ -396,6 +405,8 @@ namespace EveOPreview.View
 
 		public Action ApplicationSettingsChanged { get; set; }
 
+		public Action ConfigurationSaved { get; set; }
+
 		public Action ThumbnailsSizeChanged { get; set; }
 
 		public Action<string> ThumbnailStateChanged { get; set; }
@@ -545,11 +556,17 @@ namespace EveOPreview.View
 			{
 				if (_configuration != null)
 				{
-					var result = ConfigurationWindowLauncher.ShowDialog(_configuration, _thumbnailManager);
+					var result = ConfigurationWindowLauncher.ShowDialog(
+						_configuration, 
+						_thumbnailManager, 
+						_configurationStorage,
+						onConfigurationSaved: () => this.ConfigurationSaved?.Invoke()
+					);
 					if (result == true)
 					{
-						// Configuration was saved, trigger refresh
-						this.ApplicationSettingsChanged?.Invoke();
+						// Configuration was saved by the WPF window
+						// Just refresh the zoom settings
+						this.RefreshZoomSettings();
 					}
 				}
 				else

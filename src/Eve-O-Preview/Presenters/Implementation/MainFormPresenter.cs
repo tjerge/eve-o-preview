@@ -44,6 +44,7 @@ namespace EveOPreview.Presenters
 			this.View.FormMinimized = this.Minimize;
 			this.View.FormCloseRequested = this.Close;
 			this.View.ApplicationSettingsChanged = this.SaveApplicationSettings;
+			this.View.ConfigurationSaved = this.OnConfigurationSaved;
 			this.View.ThumbnailsSizeChanged = this.UpdateThumbnailsSize;
 			this.View.ThumbnailStateChanged = this.UpdateThumbnailState;
 			this.View.DocumentationLinkActivated = this.OpenDocumentationLink;
@@ -56,6 +57,7 @@ namespace EveOPreview.Presenters
 		{
 			mainForm.SetConfiguration(configuration);
 			mainForm.SetThumbnailManager(thumbnailManager);
+			mainForm.SetConfigurationStorage(configurationStorage);
 		}
 	}		private void Activate()
 		{
@@ -190,6 +192,14 @@ namespace EveOPreview.Presenters
 
 			this.View.RefreshZoomSettings();
 
+			await this._mediator.Send(new SaveConfiguration());
+		}
+
+		private async void OnConfigurationSaved()
+		{
+			// Called when the WPF configuration window saves settings
+			// The configuration object has already been updated and saved to disk
+			// We just need to send the mediator message to notify other components
 			await this._mediator.Send(new SaveConfiguration());
 		}
 

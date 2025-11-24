@@ -59,6 +59,7 @@ namespace EveOPreview.View
 		Action FormMinimized { get; set; }
 		Action<ViewCloseRequest> FormCloseRequested { get; set; }
 		Action ApplicationSettingsChanged { get; set; }
+		Action ConfigurationSaved { get; set; }
 		Action ThumbnailsSizeChanged { get; set; }
 		Action<string> ThumbnailStateChanged { get; set; }
 		Action DocumentationLinkActivated { get; set; }

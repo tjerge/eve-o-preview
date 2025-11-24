@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using EveOPreview.Configuration;
 using EveOPreview.Services;
@@ -10,11 +11,16 @@ namespace EveOPreview.View
 	public partial class ConfigurationWindow : Window
 	{
 		private readonly ConfigurationViewModel _viewModel;
+		private readonly IConfigurationStorage _configurationStorage;
+		private readonly Action _onConfigurationSaved;
 		private bool _isApplied = false;
 
-		public ConfigurationWindow(IThumbnailConfiguration config, IThumbnailManager thumbnailManager = null)
+		public ConfigurationWindow(IThumbnailConfiguration config, IThumbnailManager thumbnailManager = null, IConfigurationStorage configurationStorage = null, Action onConfigurationSaved = null)
 		{
 			InitializeComponent();
+
+			_configurationStorage = configurationStorage;
+			_onConfigurationSaved = onConfigurationSaved;
 
 			_viewModel = new ConfigurationViewModel(
 				config,
@@ -32,6 +38,8 @@ namespace EveOPreview.View
 		private void OnSave()
 		{
 			_viewModel.SaveConfigurationValues();
+			_configurationStorage?.Save();
+			_onConfigurationSaved?.Invoke();
 			_isApplied = true;
 			DialogResult = true;
 			Close();
@@ -46,6 +54,8 @@ namespace EveOPreview.View
 		private void OnApply()
 		{
 			_viewModel.SaveConfigurationValues();
+			_configurationStorage?.Save();
+			_onConfigurationSaved?.Invoke();
 			_isApplied = true;
 		}
 
